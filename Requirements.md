@@ -1,206 +1,175 @@
-# Express Project
+# Requerimientos del Sistema y Despliegue
 
-This is a basic project using Node.js and Express. The following describes the files and their functionality.
+Este documento describe tanto los requisitos del sistema como el proceso de despliegue para el servicio.
 
-## Project Structure
+---
 
-```
-.
-├── src/
-│   ├── app.js                # Main application file
-│   ├── controllers/          # Request handlers
-│   ├── db/                   # Database connection and setup
-│   ├── middlewares/          # Express middlewares
-│   ├── models/               # Data models
-│   ├── queries/              # Database queries
-│   ├── routes/               # Application routes
-│   ├── services/             # Business logic
-|   ├── utils/                # Utility functions
-│   └── templates/            # Email templates
-├── logs/                     # Log files
-├── tests/                    # Test files
-├── .dockerignore             # Docker ignore file
-├── .gitignore                # Git ignore file
-├── Dockerfile                # Docker configuration file
-├── README.md                 # This file
-├── Requirements.md           # Requirements file
-├── docker-compose.yml        # Docker compose file
-├── env.example               # Example environment variables
-├── jest.config.js            # Jest configuration
-├── package-lock.json         # NPM lock file
-├── package.json              # Project dependencies and scripts
-├── setup_server.sh           # Server setup script
-├── swagger-autogen.js        # Swagger autogen configuration
-├── swagger.js                # Swagger setup
-└── swagger.json              # Swagger documentation file
-```
+## 1. Requisitos del Sistema
 
-## Application Architecture Diagram
+Esta sección detalla las especificaciones de hardware y software necesarias para un funcionamiento estable del servicio.
 
-```
-+-------------------+      +-------------------+      +-------------------+
-|                   |      |                   |      |                   |
-|      Routes       +----->+   Controllers     +----->+      Services     |
-|                   |      |                   |      |                   |
-+-------------------+      +-------------------+      +-------------------+
-        |                          |                          |
-        |                          |                          |
-        v                          v                          v
-+-------------------+      +-------------------+      +-------------------+
-|                   |      |                   |      |                   |
-|    Middlewares    +----->+      Models       +----->+      Database     |
-|                   |      |                   |      |                   |
-+-------------------+      +-------------------+      +-------------------+
-```
+### 1.1. Arquitectura Recomendada
 
-## Database Schema
+La arquitectura recomendada consta de dos componentes principales:
 
-```
-+-----------------------+       +-----------------------+       +-----------------------+
-|      ms_compania      |       |      user_roles       |       |     user_usuarios     |
-+-----------------------+       +-----------------------+       +-----------------------+
-| id_cia (PK)           |       | id_rol (PK)           |       | id_usuario (PK)       |
-| nombre_abreviado      |       | nombre                |       | usuario               |
-| nombre_completo       |       | descripcion           |       | contrasena            |
-| ...                   |       |                       |       | id_rol (FK)           |
-+-----------------------+       +-----------------------+       | id_cia (FK)           |
-                                                                +-----------------------+
-            |                                      |                      |
-            |                                      |                      |
-            v                                      v                      v
-+-----------------------+       +-----------------------+       +-----------------------+
-|     polizas_sigat     |       |      polizas_gp       |       |    user_tmovements    |
-+-----------------------+       +-----------------------+       +-----------------------+
-| id (PK)               |       | id (PK)               |       | id_tmov (PK)          |
-| cedula_rif (PK)       |       | cedula_rif (PK)       |       | id_usuario (FK)       |
-| producto (PK)         |       | producto (PK)         |       | action_type           |
-| id_cia (FK)           |       | id_cia (FK)           |       | ...                   |
-| estado_id (FK)        |       | estado_id (FK)        |       +-----------------------+
-| ...                   |       | ...                   |
-+-----------------------+       +-----------------------+
+- **Servidor de Aplicación:** Responsable de ejecutar la aplicación Node.js, gestionar las solicitudes API y la lógica de negocio.
+- **Servidor de Base de Datos:** Dedicado a ejecutar la base de datos PostgreSQL, asegurando la persistencia y gestión de los datos.
+
+### 1.2. Especificaciones de Hardware
+
+| Entorno            | CPU       | RAM  | Almacenamiento | Notas                                |
+| ------------------ | --------- | ---- | -------------- | ------------------------------------ |
+| **Desarrollo**     | 2 núcleos | 4 GB | 50 GB SSD      | Mínimo para un rendimiento aceptable.  |
+| **Producción**     | 4 núcleos | 8 GB | 100 GB SSD     | Incluye espacio para copias de seguridad. |
+
+### 1.3. Especificaciones de Software
+
+| Componente     | Servidor          | Software       | Versión Recomendada | Notas                                  |
+| -------------- | ----------------- | -------------- | ------------------- | -------------------------------------- |
+| **Sistema Operativo** | Ambos             | Ubuntu         | 20.04 LTS o superior | Una distribución de Linux estable.     |
+| **Aplicación** | Servidor de App   | Node.js        | 24.x LTS            | O una versión LTS más reciente.        |
+| **Gestor de Paquetes** | Servidor de App   | npm            | 11.x                | Se instala junto con Node.js.          |
+| **Gestor de Procesos** | Servidor de App   | PM2            | 6.x                 | Para gestionar el ciclo de vida de la app. |
+| **Base de Datos**    | Servidor de BD    | PostgreSQL     | 17.x                | O una versión estable más reciente.    |
+| **Proxy Inverso**    | Servidor de App   | Nginx          | Última estable      | Para gestionar el tráfico y SSL.       |
+
+---
+
+## 2. Requisitos de Despliegue del Servicio
+
+Esta sección explica cómo desplegar la aplicación en un entorno de producción.
+
+### 2.1. Proceso de Despliegue en Producción
+
+El despliegue en producción implica los siguientes pasos clave:
+
+1.  **Configuración del Servidor:** Preparar el servidor con todo el software necesario (Node.js, PostgreSQL, Nginx, PM2).
+2.  **Clonación del Repositorio:** Descargar el código fuente desde el repositorio de Git.
+3.  **Instalación de Dependencias:** Instalar todas las dependencias del proyecto utilizando `npm install`.
+4.  **Configuración del Entorno:** Crear y configurar el archivo `.env` con las variables de entorno para producción (credenciales de base de datos, secretos JWT, etc.).
+5.  **Ejecución de Migraciones:** Aplicar las migraciones de la base de datos para configurar el esquema.
+6.  **Inicio de la Aplicación con PM2:** Iniciar la aplicación utilizando un gestor de procesos como PM2 para asegurar que se ejecute de forma continua.
+7.  **Configuración de Nginx:** Configurar Nginx como un proxy inverso para dirigir el tráfico a la aplicación Node.js y gestionar los certificados SSL.
+
+### 2.2. Configuración de Nginx
+
+Nginx actúa como proxy inverso, redirigiendo las solicitudes al puerto donde se ejecuta la aplicación Node.js.
+
+**Instalación en Ubuntu:**
+```bash
+sudo apt update && sudo apt upgrade
+sudo apt install nginx
+sudo ufw allow 'Nginx Full' # Habilitar si UFW está activo
 ```
 
-## Installation
+**Ejemplo de Configuración (`/etc/nginx/sites-available/your-domain`):**
+```nginx
+server {
+    listen 80;
+    server_name su-dominio.com www.su-dominio.com;
 
-1.  Clone the repository or download the project.
-2.  Navigate to the project directory.
-3.  Install the dependencies:
-    ```bash
-    npm install
-    ```
+    location / {
+        proxy_pass http://localhost:3000; # Asegúrese de que el puerto coincida
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+```
+Para activar la configuración, cree un enlace simbólico:
+```bash
+sudo ln -s /etc/nginx/sites-available/your-domain /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl restart nginx
+```
 
-## Environment Variables
+### 2.3. Configuración de PM2
 
-This project uses environment variables to manage configuration settings. To get started, you'll need to create a `.env` file in the root of the project. You can do this by copying the example file:
+PM2 es un gestor de procesos que mantiene la aplicación en ejecución de forma continua.
 
+**Instalación y Configuración:**
+```bash
+npm install pm2 -g
+pm2 startup
+# Siga las instrucciones para configurar el inicio automático
+```
+
+**Archivo de Ecosistema (`ecosystem.config.js`):**
+Se recomienda usar un archivo de ecosistema para definir la configuración de la aplicación.
+```javascript
+module.exports = {
+  apps : [{
+    name        : 'api-service',
+    script      : 'src/app.js',
+    instances   : 'max', // O un número específico de instancias
+    exec_mode   : 'cluster',
+    autorestart : true,
+    watch       : false,
+    max_memory_restart: '1G',
+    env_production: {
+      NODE_ENV: 'production',
+      // Aquí se pueden añadir más variables de entorno
+    }
+  }]
+};
+```
+
+**Gestión de la Aplicación:**
+```bash
+pm2 start ecosystem.config.js --env production # Iniciar la aplicación
+pm2 list                                     # Listar procesos
+pm2 stop api-service                         # Detener la aplicación
+pm2 restart api-service                      # Reiniciar la aplicación
+pm2 logs api-service                         # Ver logs
+```
+
+---
+
+## 3. Guía de Instalación y Configuración
+
+Esta sección proporciona una guía detallada para configurar el entorno de desarrollo y producción.
+
+### 3.1. Ubicación del Código Fuente
+
+El código fuente del proyecto debe ser ubicado en el directorio `/var/www/`. Esto se puede lograr clonando el repositorio directamente en esta ubicación:
+```bash
+git clone <url-del-repositorio> /var/www/nombre-del-proyecto
+```
+
+### 3.2. Instalación de Dependencias
+
+Todas las dependencias del proyecto se gestionan a través de npm. Para instalarlas, ejecute el siguiente comando desde el directorio raíz del proyecto:
+```bash
+npm install
+```
+
+### 3.3. Configuración del Archivo de Entorno
+
+El proyecto requiere un archivo `.env` en el directorio raíz para gestionar las variables de entorno. Se proporciona un archivo de ejemplo llamado `env.example` que puede ser copiado y modificado:
 ```bash
 cp env.example .env
 ```
+Asegúrese de configurar las variables en el archivo `.env` según las necesidades de su entorno (por ejemplo, credenciales de la base de datos, secretos JWT).
 
-Next, you'll need to fill in the values for the following variables in the `.env` file:
+### 3.4. Comandos Útiles del Proyecto
 
-### Server Configuration
+El archivo `package.json` incluye varios scripts útiles para la gestión del proyecto:
 
--   `HOST`: The hostname the server will run on (e.g., `localhost`).
--   `PORT`: The port the server will listen on (e.g., `3000`).
+- **`npm start`**: Inicia la aplicación en modo de producción.
+- **`npm run dev`**: Inicia la aplicación en modo de desarrollo con reinicio automático (utiliza `nodemon`).
+- **`npm test`**: Ejecuta el conjunto de pruebas del proyecto (utiliza `jest`).
+- **`npm run swagger-autogen`**: Genera o actualiza la documentación de la API (utiliza `swagger-autogen`).
+- **`npm run migrate`**: Aplica las migraciones de la base de datos.
+- **`npm run db:dump`**: Realiza un volcado de la base de datos (schema-only).
 
-### Database Configuration
+### 3.5. Script de Configuración del Servidor
 
--   `DB_USER`: The username for your PostgreSQL database.
--   `DB_HOST`: The host of your PostgreSQL database (e.g., `localhost`).
--   `DB_NAME`: The name of your PostgreSQL database.
--   `DB_PASSWORD`: The password for your PostgreSQL database.
--   `DB_PORT`: The port your PostgreSQL database is running on (e.g., `5432`).
+El proyecto incluye un script de bash llamado `setup_server.sh` que automatiza la configuración del servidor y del proyecto. Este script está diseñado para ser ejecutado en un entorno compatible (por ejemplo, Ubuntu) y facilita la instalación de dependencias y la configuración inicial.
 
-### JWT Configuration
+### 3.6. Configuración de Docker
 
--   `JWT_SECRET`: A secret key for signing JSON Web Tokens.
--   `JWT_EXPIRES_IN`: The expiration time for JSON Web Tokens (e.g., `1h`, `1d`).
-
-### Email Configuration
-
--   `EMAIL_HOST`: The hostname of your email server (e.g., `smtp.example.com`).
--   `EMAIL_PORT`: The port of your email server (e.g., `587`).
--   `EMAIL_SECURE`: Whether to use a secure connection (e.g., `true` or `false`).
--   `EMAIL_USER`: The username for your email account.
--   `EMAIL_PASS`: The password for your email account.
-
-## Usage
-
-### Running the application
-
-To start the application, run:
-
+El proyecto también incluye un archivo `Dockerfile` y `docker-compose.yml` para facilitar la contenedorización. Esto permite un despliegue y desarrollo consistentes a través de diferentes entornos. Para levantar el entorno con Docker, puede utilizar:
 ```bash
-npm start
+docker-compose up --build
 ```
-
-The application will be available at `http://localhost:3000` (or the configured port).
-
-### Running in development mode
-
-For development, you can use `nodemon` to automatically restart the server on file changes:
-
-```bash
-npm run dev
-```
-
-### Running tests
-
-To run the test suite, use:
-
-```bash
-npm test
-```
-
-### Generating Swagger documentation
-
-To generate the Swagger documentation, run the following command:
-
-```bash
-npm run swagger-autogen
-```
-
-This will create/update the `swagger.json` file. The documentation will be available at `/api-docs`.
-
-## Running with Docker
-
-To run the application using Docker, you'll need to have Docker and Docker Compose installed.
-
-1.  **Configure your environment:**
-
-    Make sure you have a `.env` file with all the required variables. The Docker Compose setup uses this file to configure both the application and the database containers.
-
-2.  **Database Connection:**
-
-    The database host is configured via the `DB_HOST` variable in your `.env` file.
-
-    *   **To connect to the included PostgreSQL container:**
-        Set `DB_HOST=db` in your `.env` file. This is the default value in `env.example`.
-
-    *   **To connect to an external database (e.g., running on your host machine):**
-        Set `DB_HOST=host.docker.internal` in your `.env` file. This special DNS name resolves to the internal IP address of the host from within a Docker container.
-
-3.  **Build and run the containers:**
-
-    ```bash
-    docker-compose up --build
-    ```
-
-    This will build the Docker image for the application and start the application and database containers. The application will be available at `http://localhost:3000` (or the configured port).
-
-4.  **Running in detached mode:**
-
-    To run the containers in the background, use the `-d` flag:
-
-    ```bash
-    docker-compose up --build -d
-    ```
-
-5.  **Stopping the containers:**
-
-    To stop the containers, run:
-
-    ```bash
-    docker-compose down
-    ```
