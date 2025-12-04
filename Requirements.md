@@ -100,22 +100,24 @@ Se recomienda usar un archivo de ecosistema para definir la configuración de la
 ```javascript
 module.exports = {
   apps: [{
-    name: 'services-ext-cap',
-    script: '/var/www/servicios-ext-sc/index.js',
+    name: 'api-service',
+    script: 'npm',
+    args: 'start',
+    cwd: '/var/www/servicios-ext-sc',
     instances: 'max',
     exec_mode: 'cluster',
     autorestart: true,
     watch: false,
     max_memory_restart: '1G',
     
-    // PM2 buscará automáticamente estos archivos
+    // PM2 pasará estas variables, pero dotenv las sobrescribirá con las del .env
     env: {
       NODE_ENV: 'development',
-      DOTENV_CONFIG_PATH: '/var/www/servicios-ext-sc/.env.development'
+      DOTENV_CONFIG_PATH: '.env.development' // Para desarrollo
     },
     env_production: {
       NODE_ENV: 'production',
-      DOTENV_CONFIG_PATH: '/var/www/servicios-ext-sc/.env'
+      DOTENV_CONFIG_PATH: '.env' // Para producción
     }
   }]
 };
