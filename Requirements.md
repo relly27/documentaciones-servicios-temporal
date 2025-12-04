@@ -99,17 +99,23 @@ pm2 startup
 Se recomienda usar un archivo de ecosistema para definir la configuración de la aplicación.
 ```javascript
 module.exports = {
-  apps : [{
-    name        : 'api-service',
-    script      : 'src/app.js',
-    instances   : 'max', // O un número específico de instancias
-    exec_mode   : 'cluster',
-    autorestart : true,
-    watch       : false,
+  apps: [{
+    name: 'services-ext-cap',
+    script: '/var/www/servicios-ext-sc/index.js',
+    instances: 'max',
+    exec_mode: 'cluster',
+    autorestart: true,
+    watch: false,
     max_memory_restart: '1G',
+    
+    // PM2 buscará automáticamente estos archivos
+    env: {
+      NODE_ENV: 'development',
+      DOTENV_CONFIG_PATH: '/var/www/servicios-ext-sc/.env.development'
+    },
     env_production: {
       NODE_ENV: 'production',
-      // Aquí se pueden añadir más variables de entorno
+      DOTENV_CONFIG_PATH: '/var/www/servicios-ext-sc/.env'
     }
   }]
 };
